@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: BASE,
@@ -10,7 +10,9 @@ const api = axios.create({
 // Add token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
@@ -24,20 +26,18 @@ api.interceptors.response.use(
       original._retry = true;
 
       try {
-        const r = await axios.post(
-          BASE + "/auth/refresh",
-          {},
-          { withCredentials: true }
-        );
+        // IMPORTANT: use same axios instance
+        const r = await api.post("/auth/refresh", {});
 
-        localStorage.setItem("accessToken", r.data.accessToken);
-        original.headers.Authorization = `Bearer ${r.data.accessToken}`;
+        const newToken = r.data.accessToken;
+        localStorage.setItem("accessToken", newToken);
+
+        original.headers.Authorization = `Bearer ${newToken}`;
 
         return api(original);
       } catch (e) {
         localStorage.removeItem("accessToken");
         window.location.href = "/login";
-        return Promise.reject(e);
       }
     }
 
