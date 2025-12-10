@@ -1,13 +1,13 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_URL; // Must be set in Vercel env
+const BASE = import.meta.env.VITE_API_URL; // must be set in Vercel
 
 const api = axios.create({
   baseURL: BASE,
-  withCredentials: true, // send cookies
+  withCredentials: true,
 });
 
-// Add access token to every request
+// Add token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -22,20 +22,16 @@ api.interceptors.response.use(
 
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
-
       try {
-        // IMPORTANT: use the same axios instance
-        const r = await api.post("/auth/refresh", {}); 
-
+        // Use same axios instance to preserve credentials
+        const r = await api.post("/auth/refresh", {});
         const newToken = r.data.accessToken;
         localStorage.setItem("accessToken", newToken);
-
         original.headers.Authorization = `Bearer ${newToken}`;
-
         return api(original); // retry original request
       } catch (e) {
         localStorage.removeItem("accessToken");
-        window.location.href = "/login"; // redirect to login
+        window.location.href = "/login";
       }
     }
 
@@ -44,3 +40,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
